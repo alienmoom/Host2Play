@@ -688,22 +688,18 @@ def renew_single_url(url, attempt_idx: int = 0):
                 log("启动 reCAPTCHA 音频破解...")
                 try:
                     solved = solve_recaptcha(page)
-                except CaptchaBlocked:
-                    log("IP 被封锁，使用 WARP 去重轮换后重试", "WARN")
-                    failure_reason = "IP 被 reCAPTCHA 封锁"
+                except Exception as e:
+                    log(f"reCAPTCHA 破解失败 ({e})，使用 WARP 换 IP 重新尝试...", "WARN")
+                    failure_reason = f"reCAPTCHA 异常: {e}"
                     try:
                         page.quit()
                     except Exception:
                         pass
                     page = None
                     if attempt < MAX_RENEW_RETRIES_PER_URL:
-                        # ✅ 去重轮换：传入当前尝试序号
+                        # 核心修改：遇到错误不 break，而是换 IP 并 continue 进入下一次尝试！
                         get_warp_manager().rotate_ip(attempt_idx=attempt - 1)
                         continue
-                    break
-                except Exception as e:
-                    log(f"reCAPTCHA 异常: {e}", "ERROR")
-                    failure_reason = f"reCAPTCHA 异常: {e}"
                     break
 
                 if not solved:
